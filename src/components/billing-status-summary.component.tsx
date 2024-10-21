@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  CheckmarkFilledIcon,
+  CheckmarkOutlineIcon,
   CloseFilledIcon,
   ErrorState,
   formatDate,
   useLayoutType,
   usePagination,
 } from '@openmrs/esm-framework';
-import { CardHeader, PatientChartPagination } from '@openmrs/esm-patient-common-lib';
+import { CardHeader, EmptyState, PatientChartPagination } from '@openmrs/esm-patient-common-lib';
 import styles from './billing-status-summary.scss';
 import {
   DataTable,
@@ -37,6 +37,7 @@ const PatientBillingStatusSummary: React.FC<PatientBillingStatusSummaryProps> = 
   const defaultPageSize = 10;
   const { t } = useTranslation();
   const headerTitle = t('billingStatus', 'Billing Status');
+  const displayText = t('billingDetails', 'Billing Details');
   const layout = useLayoutType();
   const isTablet = layout === 'tablet';
   const isDesktop = layout === 'small-desktop' || layout === 'large-desktop';
@@ -64,6 +65,7 @@ const PatientBillingStatusSummary: React.FC<PatientBillingStatusSummaryProps> = 
 
   if (isLoading) return <DataTableSkeleton role="progressbar" compact={isDesktop} zebra />;
   if (error) return <ErrorState error={error} headerTitle={headerTitle} />;
+  if (paginatedRows.length === 0) return <EmptyState displayText={displayText} headerTitle={headerTitle} />;
 
   return (
     <div className={styles.widgetCard}>
@@ -107,7 +109,7 @@ const PatientBillingStatusSummary: React.FC<PatientBillingStatusSummaryProps> = 
                         <TableCell>{row.cells[0].value}</TableCell>
                         <TableCell>
                           {row.cells[1].value ? (
-                            <CheckmarkFilledIcon className={styles.approvedIcon} />
+                            <CheckmarkOutlineIcon className={styles.approvedIcon} />
                           ) : (
                             <CloseFilledIcon className={styles.warningIcon} />
                           )}
@@ -166,18 +168,6 @@ const ExpandedRowContent = ({ rowId, rowIndex, parentTableRows }) => {
     return [];
   }, [rowId, parentTableRows]);
 
-  if (orders.length === 0) {
-    return (
-      <div className={styles.tileContainer}>
-        <Tile className={styles.emptyStateTile}>
-          <div className={styles.tileContent}>
-            <p className={styles.content}>{t('noMatchingOrdersToDisplay', 'No billing status to display')}</p>
-          </div>
-        </Tile>
-      </div>
-    );
-  }
-
   return (
     <div>
       {orders.map((order, index) => (
@@ -189,7 +179,7 @@ const ExpandedRowContent = ({ rowId, rowIndex, parentTableRows }) => {
         >
           <div className={styles.statusIcon}>
             {order.approved ? (
-              <CheckmarkFilledIcon className={styles.approvedIcon} />
+              <CheckmarkOutlineIcon className={styles.approvedIcon} />
             ) : (
               <CloseFilledIcon className={styles.warningIcon} />
             )}
