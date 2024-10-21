@@ -1,80 +1,200 @@
 // import React from 'react';
-// import { screen } from '@testing-library/react';
-// import { openmrsFetch } from '@openmrs/esm-framework';
-// import { mockFhirAllergyIntoleranceResponse } from '__mocks__';
-// import { mockPatient, renderWithSwr, waitForLoadingToFinish } from 'tools';
-// import AllergiesDetailedSummary from './allergies-detailed-summary.component';
+// import { render, screen } from '@testing-library/react';
+// import userEvent from '@testing-library/user-event';
+// import { useTranslation } from 'react-i18next';
+// import { useBillingStatus } from '../resources/billing-status.resource';
+// import { formatDate, useLayoutType } from '@openmrs/esm-framework';
+// import PatientBillingStatusSummary from './billing-status-summary.component';
 //
-// const mockOpenmrsFetch = openmrsFetch as jest.Mock;
-// mockOpenmrsFetch.mockImplementation(jest.fn());
+// const mockedUseLayoutType = jest.mocked(useLayoutType);
+// const mockedFormatDate = jest.mocked(formatDate);
 //
-// describe('AllergiesDetailedSummary', () => {
-//   it('renders an empty state view if allergy data is unavailable', async () => {
-//     mockOpenmrsFetch.mockReturnValueOnce({ data: { entry: [] } });
-//     renderWithSwr(<AllergiesDetailedSummary patient={mockPatient} />);
-//     await waitForLoadingToFinish();
+// jest.mock('../resources/billing-status.resource', () => ({
+//   useBillingStatus: jest.fn(),
+// }));
 //
-//     expect(screen.queryByRole('table')).not.toBeInTheDocument();
-//     expect(screen.getByRole('heading', { name: /allergies/i })).toBeInTheDocument();
-//     expect(screen.getByText(/There are no allergy intolerances to display for this patient/i)).toBeInTheDocument();
-//     expect(screen.getByText(/Record allergy intolerances/i)).toBeInTheDocument();
-//   });
+// const mockPatient = {
+//   id: 'test-patient-id',
+//   resourceType: 'Patient',
+// };
 //
-//   it('renders an error state view if there was a problem fetching allergies data', async () => {
-//     const error = {
-//       message: 'You are not logged in',
-//       response: {
-//         status: 401,
-//         statusText: 'Unauthorized',
+// const mockBillingData = {
+//   'visit-1': {
+//     visit: {
+//       uuid: 'visit-1',
+//       startDate: '2024-01-01',
+//       endDate: '2024-01-02',
+//     },
+//     approved: true,
+//     lines: [
+//       {
+//         id: 'line-1',
+//         displayName: 'Test Order 1',
+//         approved: true,
+//         document: 'DOC-001',
 //       },
-//     };
-//     mockOpenmrsFetch.mockRejectedValueOnce(error);
-//     renderWithSwr(<AllergiesDetailedSummary patient={mockPatient} />);
-//     await waitForLoadingToFinish();
+//     ],
+//   },
+//   'visit-2': {
+//     visit: {
+//       uuid: 'visit-2',
+//       startDate: '2024-01-03',
+//       endDate: '2024-01-04',
+//     },
+//     approved: false,
+//     lines: [
+//       {
+//         id: 'line-2',
+//         displayName: 'Test Order 2',
+//         approved: false,
+//         document: 'DOC-002',
+//       },
+//     ],
+//   },
+// };
 //
-//     expect(screen.queryByRole('table')).not.toBeInTheDocument();
-//     expect(screen.getByRole('heading', { name: /allergies/i })).toBeInTheDocument();
-//     expect(screen.getByText(/Error 401: Unauthorized/i)).toBeInTheDocument();
-//     expect(
-//       screen.getByText(
-//         /Sorry, there was a problem displaying this information. You can try to reload this page, or contact the site administrator and quote the error code above/i,
-//       ),
-//     ).toBeInTheDocument();
+// describe('PatientBillingStatusSummary', () => {
+//   beforeEach(() => {
+//     jest.clearAllMocks();
+//
+//     (useTranslation as jest.Mock).mockReturnValue({
+//       t: (key: string) => key,
+//     });
+//
+//     (useLayoutType as jest.Mock).mockReturnValue('small-desktop');
+//
+//     (useBillingStatus as jest.Mock).mockReturnValue({
+//       groupedLines: mockBillingData,
+//       isLoading: false,
+//       isValidating: false,
+//       error: null,
+//     });
 //   });
 //
-//   it("renders a detailed summary of the patient's allergic reactions and their manifestations", async () => {
-//     mockOpenmrsFetch.mockReturnValueOnce({ data: mockFhirAllergyIntoleranceResponse });
-//     renderWithSwr(<AllergiesDetailedSummary patient={mockPatient} />);
-//     await waitForLoadingToFinish();
+//   it('renders loading state correctly', () => {
+//     (useBillingStatus as jest.Mock).mockReturnValue({
+//       groupedLines: null,
+//       isLoading: true,
+//       isValidating: false,
+//       error: null,
+//     });
 //
-//     expect(screen.getByRole('heading', { name: /allergies/i })).toBeInTheDocument();
+//     render(<PatientBillingStatusSummary patient={mockPatient} />);
 //
-//     const expectedColumnHeaders = [/allergen/i, /severity/i, /reaction/i, /onset date and comments/i];
-//     const expectedAllergies = [
-//       /ACE inhibitors moderate Anaphylaxis/i,
-//       /Fish mild Anaphylaxis, Angioedema, Fever, Hives Some Comments/i,
-//       /Penicillins severe Mental status change, Angioedema, Cough, Diarrhea, Musculoskeletal pain Patient allergies have been noted down/i,
-//       /Morphine severe Mental status change Comments/i,
-//       /Aspirin severe Mental status change Comments/i,
-//     ];
-//
-//     expectedColumnHeaders.forEach((header) =>
-//       expect(screen.getByRole('columnheader', { name: new RegExp(header) })).toBeInTheDocument(),
-//     );
-//
-//     expectedAllergies.forEach((allergy) =>
-//       expect(screen.getByRole('row', { name: new RegExp(allergy) })).toBeInTheDocument(),
-//     );
+//     expect(screen.getByRole('progressbar')).toBeInTheDocument();
 //   });
 //
-//   it("renders non-coded allergen name and non-coded allergic reaction name in the detailed summary of the patient's allergies", async () => {
-//     mockOpenmrsFetch.mockReturnValueOnce({ data: mockFhirAllergyIntoleranceResponse });
-//     renderWithSwr(<AllergiesDetailedSummary patient={mockPatient} />);
-//     await waitForLoadingToFinish();
+//   it('renders error state correctly', () => {
+//     const mockError = new Error('Test error');
+//     (useBillingStatus as jest.Mock).mockReturnValue({
+//       groupedLines: null,
+//       isLoading: false,
+//       isValidating: false,
+//       error: mockError,
+//     });
 //
-//     expect(screen.getByRole('heading', { name: /allergies/i })).toBeInTheDocument();
+//     render(<PatientBillingStatusSummary patient={mockPatient} />);
 //
-//     const expectedNonCodedAllergy = /non-coded allergen severe non-coded allergic reaction non coded allergic note/i;
-//     expect(screen.getByRole('row', { name: new RegExp(expectedNonCodedAllergy) })).toBeInTheDocument();
+//     expect(screen.getByText('billingStatus')).toBeInTheDocument();
+//     expect(screen.getByText(/error/i)).toBeInTheDocument();
+//   });
+//
+//   it('renders empty state when no data is available', () => {
+//     (useBillingStatus as jest.Mock).mockReturnValue({
+//       groupedLines: {},
+//       isLoading: false,
+//       isValidating: false,
+//       error: null,
+//     });
+//
+//     render(<PatientBillingStatusSummary patient={mockPatient} />);
+//
+//     expect(screen.getByText('billingDetails')).toBeInTheDocument();
+//   });
+//
+//   it('renders billing status table with correct data', () => {
+//     render(<PatientBillingStatusSummary patient={mockPatient} />);
+//
+//     expect(screen.getByText('Visit Date')).toBeInTheDocument();
+//     expect(screen.getByText('Status')).toBeInTheDocument();
+//
+//     expect(screen.getByText('2024-01-01 - 2024-01-02')).toBeInTheDocument();
+//     expect(screen.getByText('2024-01-03 - 2024-01-04')).toBeInTheDocument();
+//   });
+//
+//   it('expands row to show order details when clicked', async () => {
+//     const user = userEvent.setup();
+//     render(<PatientBillingStatusSummary patient={mockPatient} />);
+//
+//     const expandButtons = screen.getAllByRole('button');
+//     await user.click(expandButtons[1]);
+//
+//     expect(screen.getByText('Test Order 1')).toBeInTheDocument();
+//     expect(screen.getByText('DOC-001')).toBeInTheDocument();
+//   });
+//
+//   it('handles pagination correctly', async () => {
+//     const largeDataSet = {};
+//     for (let i = 1; i <= 15; i++) {
+//       largeDataSet[`visit-${i}`] = {
+//         visit: {
+//           uuid: `visit-${i}`,
+//           startDate: '2024-01-01',
+//           endDate: '2024-01-02',
+//         },
+//         approved: true,
+//         lines: [
+//           {
+//             id: `line-${i}`,
+//             displayName: `Test Order ${i}`,
+//             approved: true,
+//             document: `DOC-${i.toString().padStart(3, '0')}`,
+//           },
+//         ],
+//       };
+//     }
+//
+//     (useBillingStatus as jest.Mock).mockReturnValue({
+//       groupedLines: largeDataSet,
+//       isLoading: false,
+//       isValidating: false,
+//       error: null,
+//     });
+//
+//     const user = userEvent.setup();
+//     render(<PatientBillingStatusSummary patient={mockPatient} />);
+//
+//     expect(screen.getByText('2024-01-01 - 2024-01-02')).toBeInTheDocument();
+//
+//     const nextPageButton = screen.getByRole('button', { name: /next page/i });
+//     await user.click(nextPageButton);
+//
+//     expect(screen.getByText(/showing/i)).toBeInTheDocument();
+//   });
+//
+//   it('adjusts layout based on screen size', () => {
+//     (useLayoutType as jest.Mock).mockReturnValue('tablet');
+//
+//     const { rerender } = render(<PatientBillingStatusSummary patient={mockPatient} />);
+//
+//     expect(screen.getByRole('table')).toBeInTheDocument();
+//
+//     (useLayoutType as jest.Mock).mockReturnValue('large-desktop');
+//     rerender(<PatientBillingStatusSummary patient={mockPatient} />);
+//
+//     expect(screen.getByRole('table')).toBeInTheDocument();
+//   });
+//
+//   it('shows inline loading state when validating', () => {
+//     (useBillingStatus as jest.Mock).mockReturnValue({
+//       groupedLines: mockBillingData,
+//       isLoading: false,
+//       isValidating: true,
+//       error: null,
+//     });
+//
+//     render(<PatientBillingStatusSummary patient={mockPatient} />);
+//
+//     expect(screen.getByRole('progressbar')).toBeInTheDocument();
 //   });
 // });

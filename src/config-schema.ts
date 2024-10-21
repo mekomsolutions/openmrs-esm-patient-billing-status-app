@@ -40,10 +40,22 @@ export const configSchema = {
       },
     },
   },
+  patientUuidFieldName: {
+    _type: Type.String,
+    _default: 'partner_id',
+    _description: 'The field name representing the patient UUID in the partner model.',
+  },
+  orderExternalIdFieldName: {
+    _type: Type.String,
+    _default: 'external_order_id',
+    _description: 'The field name representing the external order ID.',
+  },
 };
 
 export type Config = {
   retireLinesConditions: Array<Array<string>>;
   nonApprovedConditions: Array<Array<string>>;
   approvedConditions: Array<Array<string>>;
+  patientUuidFieldName: string;
+  orderExternalIdFieldName: string;
 };
