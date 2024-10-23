@@ -1,7 +1,7 @@
 import useSWR from 'swr';
 import { useMemo } from 'react';
 import { openmrsFetch, restBaseUrl, useConfig } from '@openmrs/esm-framework';
-import { type BillingLine, type ErpInvoice, type ErpOrder } from '../types';
+import { type BillingLine, type BillingVisit, type ErpInvoice, type ErpOrder, type PatientVisit } from '../types';
 import { type Config } from '../config-schema';
 
 const ORDER = 'ORDER';
@@ -14,8 +14,30 @@ const NOT_PAID = 'NOT_PAID';
 const OVERDUE = 'OVERDUE';
 const NOT_OVERDUE = 'NOT_OVERDUE';
 
+const fetchVisits = async (patientUuid: string) => {
+  const customRepresentation = 'custom:(uuid,encounters:(orders),startDatetime,stopDatetime)';
+  const apiUrl = `${restBaseUrl}/visit?patient=${patientUuid}&v=${customRepresentation}`;
+  const response = await openmrsFetch<{ results: PatientVisit[] }>(apiUrl);
+
+  const flattenedVisits: BillingVisit[] = [];
+  response.data.results.forEach((visit) => {
+    visit.encounters?.forEach((encounter) => {
+      encounter.orders?.forEach((order) => {
+        flattenedVisits.push({
+          uuid: visit.uuid,
+          order: order.uuid,
+          startDate: visit.startDatetime,
+          endDate: visit.stopDatetime,
+        });
+      });
+    });
+  });
+
+  return flattenedVisits;
+};
+
 const fetchOrders = async (patientUuid: string, config: Config) => {
-  const apiUrl = `${restBaseUrl}/erp/order?v=custom:(order_lines,date,date_order,name,number,${config.orderExternalIdFieldName})`;
+  const apiUrl = `${restBaseUrl}/erp/order?v=custom:(uuid,order_lines,date,date_order,name,number,${config.orderExternalIdFieldName})`;
   const response = await openmrsFetch<ErpOrder[]>(apiUrl, {
     method: 'POST',
     body: {
@@ -55,7 +77,12 @@ const fetchInvoices = async (patientUuid: string, config: Config) => {
   return response.data;
 };
 
-const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config: Config): BillingLine[] => {
+const processBillingLines = (
+  orders: ErpOrder[],
+  invoices: ErpInvoice[],
+  visits: BillingVisit[],
+  config: Config,
+): BillingLine[] => {
   const lines: BillingLine[] = [];
 
   // Process order lines
@@ -74,11 +101,6 @@ const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config:
       const line: BillingLine = {
         id: orderLine.id,
         date: order.date_order,
-        visit: {
-          uuid: 'no-visit',
-          startDate: null,
-          endDate: null,
-        },
         document: order.name,
         order: orderLine.external_id,
         tags,
@@ -112,11 +134,6 @@ const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config:
       const line: BillingLine = {
         id: invoiceLine.id,
         date: invoice.date,
-        visit: {
-          uuid: 'no-visit',
-          startDate: null,
-          endDate: null,
-        },
         document: invoice.number,
         order: orderUuid,
         tags,
@@ -129,13 +146,28 @@ const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config:
   });
 
   // Set approval status and filter retired lines
-  return lines
+  const linesWithVisits = setVisitToLines(lines, visits);
+
+  return linesWithVisits
     .map((line) => ({
       ...line,
       approved: isLineApproved(line.tags, config),
       retire: shouldRetireLine(line.tags, config),
     }))
     .filter((line) => !line.retire);
+};
+
+const setVisitToLines = (lines: BillingLine[], visits: BillingVisit[]): BillingLine[] => {
+  return lines.map((line) => {
+    const matchingVisit = visits.find((visit) => visit.order === line.order);
+    if (matchingVisit) {
+      return {
+        ...line,
+        visit: matchingVisit,
+      };
+    }
+    return line;
+  });
 };
 
 const isLineApproved = (tags: string[], config: Config): boolean => {
@@ -169,28 +201,29 @@ export const useBillingStatus = (patientUuid: string) => {
     isLoading,
     isValidating,
   } = useSWR<BillingLine[], Error>(patientUuid ? ['billingStatus', patientUuid] : null, async () => {
-    const [orders, invoices] = await Promise.all([
+    const [orders, invoices, visits] = await Promise.all([
       fetchOrders(patientUuid, config),
       fetchInvoices(patientUuid, config),
+      fetchVisits(patientUuid),
     ]);
-    return processBillingLines(orders, invoices, config);
+    return processBillingLines(orders, invoices, visits, config);
   });
 
   const groupedLines = useMemo(() => {
     if (!billingLines) return {};
 
     return billingLines.reduce(
-      (acc, line) => {
-        if (!acc[line.visit.uuid]) {
-          acc[line.visit.uuid] = {
+      (visitGroup, line) => {
+        if (!visitGroup[line.visit.uuid]) {
+          visitGroup[line.visit.uuid] = {
             visit: line.visit,
             approved: true,
             lines: [],
           };
         }
-        acc[line.visit.uuid].lines.push(line);
-        acc[line.visit.uuid].approved = acc[line.visit.uuid].approved && line.approved;
-        return acc;
+        visitGroup[line.visit.uuid].lines.push(line);
+        visitGroup[line.visit.uuid].approved = visitGroup[line.visit.uuid].approved && line.approved;
+        return visitGroup;
       },
       {} as Record<
         string,
