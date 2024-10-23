@@ -1,13 +1,27 @@
 import type { OpenmrsResource } from '@openmrs/esm-framework';
 
+export interface PatientVisit {
+  uuid: string;
+  encounters?: Array<{
+    orders?: Array<{
+      uuid: string;
+    }>;
+  }>;
+  startDatetime: string;
+  stopDatetime: string;
+}
+
+export interface BillingVisit {
+  uuid: string;
+  order: string;
+  startDate: string;
+  endDate: string;
+}
+
 export interface BillingLine {
   id: string;
   date: string;
-  visit: {
-    uuid: string;
-    startDate: string;
-    endDate: string;
-  };
+  visit?: BillingVisit;
   document: string;
   order: string;
   tags: string[];
