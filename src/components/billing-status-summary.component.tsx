@@ -28,6 +28,7 @@ import {
 } from '@carbon/react';
 import { useBillingStatus } from '../resources/billing-status.resource';
 import classNames from 'classnames';
+import { type BillingLineGroup } from '../types';
 
 interface PatientBillingStatusSummaryProps {
   patient: fhir.Patient;
@@ -44,22 +45,17 @@ const PatientBillingStatusSummary: React.FC<PatientBillingStatusSummaryProps> = 
 
   const { groupedLines, isLoading, isValidating, error } = useBillingStatus(patient.id);
 
-  const tableRows = useMemo(() => {
+  const tableRows = useMemo<BillingLineGroup[]>(() => {
     if (!groupedLines) return [];
-    return Object.entries(groupedLines).map(([visitId, group]) => {
-      return {
-        id: visitId,
-        visitDate: `${formatDate(new Date(group.visit.startDate))} - ${formatDate(new Date(group.visit.endDate))}`,
-        status: group.approved,
-        lines: group.lines,
-      };
+    return Object.entries(groupedLines).map(([_, group]) => {
+      return group;
     });
   }, [groupedLines]);
 
   const { results: paginatedRows, goTo, currentPage } = usePagination(tableRows, defaultPageSize);
 
   const headers = [
-    { key: 'visitDate', header: 'Visit Date' },
+    { key: 'date', header: 'Date' },
     { key: 'status', header: 'Status' },
   ];
 

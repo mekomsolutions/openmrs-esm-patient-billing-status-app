@@ -1,12 +1,19 @@
 import useSWR from 'swr';
 import { useMemo } from 'react';
-import { openmrsFetch, restBaseUrl, useConfig } from '@openmrs/esm-framework';
-import { type BillingLine, type BillingVisit, type ErpInvoice, type ErpOrder, type PatientVisit } from '../types';
+import { formatDate, openmrsFetch, restBaseUrl, useConfig } from '@openmrs/esm-framework';
+import {
+  type BillingLine,
+  type BillingVisit,
+  type ErpInvoice,
+  type ErpOrder,
+  type GroupedBillingLines,
+  type PatientVisit,
+} from '../types';
 import { type Config } from '../config-schema';
 
 const ORDER = 'ORDER';
-const INVOICE = 'INVOICE';
-const NON_INVOICED = 'NON INVOICED';
+const INVOICED = 'INVOICED';
+const NOT_INVOICED = 'NOT_INVOICED';
 const FULLY_INVOICED = 'FULLY_INVOICED';
 const PARTIALLY_INVOICED = 'PARTIALLY_INVOICED';
 const PAID = 'PAID';
@@ -37,7 +44,7 @@ const fetchVisits = async (patientUuid: string) => {
 };
 
 const fetchOrders = async (patientUuid: string, config: Config) => {
-  const apiUrl = `${restBaseUrl}/erp/order?v=custom:(uuid,order_lines,date,date_order,name,number,${config.orderExternalIdFieldName})`;
+  const apiUrl = `${restBaseUrl}/erp/order?rep=custom:order_lines,date,date_order,name,number,product_id,${config.orderExternalIdFieldName}`;
   const response = await openmrsFetch<ErpOrder[]>(apiUrl, {
     method: 'POST',
     body: {
@@ -54,7 +61,7 @@ const fetchOrders = async (patientUuid: string, config: Config) => {
 };
 
 const fetchInvoices = async (patientUuid: string, config: Config) => {
-  const apiUrl = `${restBaseUrl}/erp/invoice?v=custom:(invoice_lines,date,state,date_due,number)`;
+  const apiUrl = `${restBaseUrl}/erp/invoice?rep=custom:invoice_lines,date,payment_state,invoice_date_due,name`;
   const response = await openmrsFetch<ErpInvoice[]>(apiUrl, {
     method: 'POST',
     body: {
@@ -64,12 +71,11 @@ const fetchInvoices = async (patientUuid: string, config: Config) => {
           comparison: '=',
           value: patientUuid,
         },
-        // TODO check for exact filter needed for this
-        // {
-        //   field: 'type',
-        //   comparison: '=',
-        //   value: 'out_invoice',
-        // },
+        {
+          field: 'move_type',
+          comparison: '=',
+          value: 'out_invoice',
+        },
       ],
     },
   });
@@ -77,12 +83,7 @@ const fetchInvoices = async (patientUuid: string, config: Config) => {
   return response.data;
 };
 
-const processBillingLines = (
-  orders: ErpOrder[],
-  invoices: ErpInvoice[],
-  visits: BillingVisit[],
-  config: Config,
-): BillingLine[] => {
+const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config: Config): BillingLine[] => {
   const lines: BillingLine[] = [];
 
   // Process order lines
@@ -91,7 +92,7 @@ const processBillingLines = (
       const tags: string[] = [ORDER];
 
       if (orderLine.qty_invoiced === 0) {
-        tags.push(NON_INVOICED);
+        tags.push(NOT_INVOICED);
       } else if (orderLine.qty_invoiced > 0 && orderLine.qty_to_invoice > 0) {
         tags.push(PARTIALLY_INVOICED);
       } else if (orderLine.qty_to_invoice <= 0) {
@@ -102,9 +103,9 @@ const processBillingLines = (
         id: orderLine.id,
         date: order.date_order,
         document: order.name,
-        order: orderLine.external_id,
+        order: orderLine.name, // TODO this should be reading the orderLine[config.orderExternalIdFieldName]
         tags,
-        displayName: orderLine.display_name,
+        displayName: (orderLine.product_id[1] || orderLine.name).toString(),
         approved: false,
       };
 
@@ -115,9 +116,9 @@ const processBillingLines = (
   // Process invoice lines
   invoices.forEach((invoice) => {
     invoice.invoice_lines.forEach((invoiceLine) => {
-      const tags: string[] = [INVOICE];
+      const tags: string[] = [INVOICED];
 
-      if (invoice.state === 'paid') {
+      if (invoice.payment_state === 'paid') {
         tags.push(PAID);
       } else {
         tags.push(NOT_PAID);
@@ -129,26 +130,35 @@ const processBillingLines = (
         tags.push(NOT_OVERDUE);
       }
 
-      const orderUuid = orders.find((order) => order.name === invoiceLine.origin)?.external_id || '';
+      let orderId = ''; // TODO this should be the orderExternalId of the invoice order
+      orders.forEach((order) => {
+        order.order_lines.forEach((orderLine) => {
+          if (!!orderLine.invoice_lines.length && orderLine.invoice_lines.includes(invoiceLine.id)) {
+            orderId = orderLine.name;
+          }
+        });
+      });
 
-      const line: BillingLine = {
-        id: invoiceLine.id,
-        date: invoice.date,
-        document: invoice.number,
-        order: orderUuid,
-        tags,
-        displayName: invoiceLine.display_name,
-        approved: false,
-      };
+      if (orderId) {
+        const line: BillingLine = {
+          id: invoiceLine.id,
+          date: invoice.date,
+          document: invoice.name,
+          order: orderId,
+          tags,
+          displayName: (invoiceLine.product_id[1] || invoiceLine.name).toString(),
+          approved: false,
+        };
 
-      lines.push(line);
+        lines.push(line);
+      }
     });
   });
 
-  // Set approval status and filter retired lines
-  const linesWithVisits = setVisitToLines(lines, visits);
+  // Set visit, approval status and filter retired lines
+  // const linesWithVisits = setVisitToLines(lines, visits);
 
-  return linesWithVisits
+  return lines
     .map((line) => ({
       ...line,
       approved: isLineApproved(line.tags, config),
@@ -159,7 +169,8 @@ const processBillingLines = (
 
 const setVisitToLines = (lines: BillingLine[], visits: BillingVisit[]): BillingLine[] => {
   return lines.map((line) => {
-    const matchingVisit = visits.find((visit) => visit.order === line.order);
+    // TODO this matching needs the external_id present on erp order to match the exact visit encounter order
+    const matchingVisit = visits.find((visit) => line.order === visit.order);
     if (matchingVisit) {
       return {
         ...line,
@@ -171,25 +182,81 @@ const setVisitToLines = (lines: BillingLine[], visits: BillingVisit[]): BillingL
 };
 
 const isLineApproved = (tags: string[], config: Config): boolean => {
-  let approved = false;
-
-  config.approvedConditions.forEach((condition) => {
-    if (condition.every((tag) => tags.includes(tag))) {
-      approved = true;
-    }
-  });
-
-  config.nonApprovedConditions.forEach((condition) => {
-    if (condition.every((tag) => tags.includes(tag))) {
-      approved = false;
-    }
-  });
-
-  return approved;
+  return (
+    config.approvedConditions.some(
+      (condition) =>
+        JSON.stringify(
+          condition
+            .split(',')
+            .map((c) => c.trim())
+            .sort(),
+        ) === JSON.stringify(tags.sort()),
+    ) ||
+    config.nonApprovedConditions.some(
+      (condition) =>
+        JSON.stringify(
+          condition
+            .split(',')
+            .map((c) => c.trim())
+            .sort(),
+        ) === JSON.stringify(tags.sort()),
+    )
+  );
 };
 
 const shouldRetireLine = (tags: string[], config: Config): boolean => {
-  return config.retireLinesConditions.some((condition) => condition.every((tag) => tags.includes(tag)));
+  return config.retireLinesConditions.some(
+    (condition) =>
+      JSON.stringify(
+        condition
+          .split(',')
+          .map((c) => c.trim())
+          .sort(),
+      ) === JSON.stringify(tags.sort()),
+  );
+};
+
+const groupByVisits = (lines: BillingLine[]): GroupedBillingLines => {
+  const groupedLines: GroupedBillingLines = {};
+
+  lines.forEach((line) => {
+    if (!groupedLines[line.visit.uuid]) {
+      groupedLines[line.visit.uuid] = {
+        id: line.visit.uuid,
+        visit: line.visit,
+        date: `${formatDate(new Date(line.visit.startDate))} - ${formatDate(new Date(line.visit.endDate))}`,
+        status: true,
+        lines: [],
+      };
+    }
+
+    groupedLines[line.visit.uuid].lines.push(line);
+    groupedLines[line.visit.uuid].status = groupedLines[line.visit.uuid].status && line.approved;
+  });
+
+  return groupedLines;
+};
+
+const groupLinesByDay = (linesToGroup: BillingLine[]): GroupedBillingLines => {
+  const groupedLines: GroupedBillingLines = {};
+
+  linesToGroup.forEach((line) => {
+    const date = line.date.substring(0, 10);
+    if (!groupedLines[date]) {
+      groupedLines[date] = {
+        id: date,
+        visit: line.visit,
+        date: formatDate(new Date(line.date), { time: false }),
+        status: true,
+        lines: [],
+      };
+    }
+
+    groupedLines[date].lines.push(line);
+    groupedLines[date].status = groupedLines[date].status && line.approved;
+  });
+
+  return groupedLines;
 };
 
 export const useBillingStatus = (patientUuid: string) => {
@@ -201,39 +268,17 @@ export const useBillingStatus = (patientUuid: string) => {
     isLoading,
     isValidating,
   } = useSWR<BillingLine[], Error>(patientUuid ? ['billingStatus', patientUuid] : null, async () => {
-    const [orders, invoices, visits] = await Promise.all([
+    const [orders, invoices] = await Promise.all([
       fetchOrders(patientUuid, config),
       fetchInvoices(patientUuid, config),
-      fetchVisits(patientUuid),
+      //   TODO fetch patient visits fetchVisits(patientUuid)
     ]);
-    return processBillingLines(orders, invoices, visits, config);
+    return processBillingLines(orders, invoices, config);
   });
 
   const groupedLines = useMemo(() => {
     if (!billingLines) return {};
-
-    return billingLines.reduce(
-      (visitGroup, line) => {
-        if (!visitGroup[line.visit.uuid]) {
-          visitGroup[line.visit.uuid] = {
-            visit: line.visit,
-            approved: true,
-            lines: [],
-          };
-        }
-        visitGroup[line.visit.uuid].lines.push(line);
-        visitGroup[line.visit.uuid].approved = visitGroup[line.visit.uuid].approved && line.approved;
-        return visitGroup;
-      },
-      {} as Record<
-        string,
-        {
-          visit: BillingLine['visit'];
-          approved: boolean;
-          lines: BillingLine[];
-        }
-      >,
-    );
+    return groupLinesByDay(billingLines);
   }, [billingLines]);
 
   return {

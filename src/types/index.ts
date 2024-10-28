@@ -5,6 +5,10 @@ export interface PatientVisit {
   encounters?: Array<{
     orders?: Array<{
       uuid: string;
+      display: string;
+      drug: {
+        display: string;
+      };
     }>;
   }>;
   startDatetime: string;
@@ -18,8 +22,18 @@ export interface BillingVisit {
   endDate: string;
 }
 
-export interface BillingLine {
+export interface BillingLineGroup {
   id: string;
+  visit: BillingLine['visit'];
+  date?: string;
+  status: boolean;
+  lines: BillingLine[];
+}
+
+export type GroupedBillingLines = Record<string, BillingLineGroup>;
+
+export interface BillingLine {
+  id: string | number;
   date: string;
   visit?: BillingVisit;
   document: string;
@@ -35,7 +49,12 @@ export interface ErpOrder extends OpenmrsResource {
     qty_invoiced: number;
     qty_to_invoice: number;
     external_id: string;
+    product_id: Array<number | string>;
     display_name: string;
+    product_uom_qty: number;
+    product_uom: Array<number | string>;
+    invoice_lines: Array<number>;
+    name: string;
   }>;
   date_order: string;
   name: string;
@@ -43,12 +62,16 @@ export interface ErpOrder extends OpenmrsResource {
 
 export interface ErpInvoice extends OpenmrsResource {
   invoice_lines: Array<{
-    id: string;
-    origin: string;
-    display_name: string;
+    id: number;
+    move_name: string;
+    name: string;
+    quantity: number;
+    product_id: Array<number | string>;
+    product_uom_id: Array<number | string>;
   }>;
   date: string;
-  date_due: string;
-  state: string;
+  invoice_date_due: string;
+  payment_state: string;
+  invoice_origin: string;
   number: string;
 }
