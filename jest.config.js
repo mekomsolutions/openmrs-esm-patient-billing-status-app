@@ -22,10 +22,12 @@ module.exports = {
     '^lodash-es/(.*)$': 'lodash/$1',
     'lodash-es': 'lodash',
     '^dexie$': require.resolve('dexie'),
+    '^uuid$': path.resolve(__dirname, 'node_modules', 'uuid', 'dist', 'index.js'),
   },
   setupFilesAfterEnv: ['<rootDir>/src/setup-tests.ts'],
-  testPathIgnorePatterns: [path.resolve(__dirname, 'e2e')],
+  testPathIgnorePatterns: ['<rootDir>/e2e'],
   testEnvironment: 'jsdom',
+
   testEnvironmentOptions: {
     url: 'http://localhost/',
   },

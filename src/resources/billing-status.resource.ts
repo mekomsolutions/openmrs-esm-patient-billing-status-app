@@ -9,7 +9,7 @@ import {
   type GroupedBillingLines,
   type PatientVisit,
 } from '../types';
-import { type Config } from '../config-schema';
+import { BillingCondition, type Config } from '../config-schema';
 
 const ORDER = 'ORDER';
 const INVOICED = 'INVOICED';
@@ -83,7 +83,7 @@ const fetchInvoices = async (patientUuid: string, config: Config) => {
   return response.data;
 };
 
-const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config: Config): BillingLine[] => {
+export const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config: Config): BillingLine[] => {
   const lines: BillingLine[] = [];
 
   // Process order lines
@@ -124,8 +124,8 @@ const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config:
         tags.push(NOT_PAID);
       }
 
-      if (new Date(invoice.date_due) >= new Date()) {
-        tags.push(OVERDUE);
+      if (new Date(invoice.invoice_date_due) <= new Date()) {
+        tags.push(BillingCondition.OVERDUE);
       } else {
         tags.push(NOT_OVERDUE);
       }
@@ -167,7 +167,7 @@ const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config:
     .filter((line) => !line.retire);
 };
 
-const setVisitToLines = (lines: BillingLine[], visits: BillingVisit[]): BillingLine[] => {
+export const setVisitToLines = (lines: BillingLine[], visits: BillingVisit[]): BillingLine[] => {
   return lines.map((line) => {
     // TODO this matching needs the external_id present on erp order to match the exact visit encounter order
     const matchingVisit = visits.find((visit) => line.order === visit.order);
@@ -181,7 +181,7 @@ const setVisitToLines = (lines: BillingLine[], visits: BillingVisit[]): BillingL
   });
 };
 
-const isLineApproved = (tags: string[], config: Config): boolean => {
+export const isLineApproved = (tags: string[], config: Config): boolean => {
   return (
     config.approvedConditions.some(
       (condition) =>
@@ -192,7 +192,7 @@ const isLineApproved = (tags: string[], config: Config): boolean => {
             .sort(),
         ) === JSON.stringify(tags.sort()),
     ) ||
-    config.nonApprovedConditions.some(
+    !config.nonApprovedConditions.some(
       (condition) =>
         JSON.stringify(
           condition
@@ -204,7 +204,7 @@ const isLineApproved = (tags: string[], config: Config): boolean => {
   );
 };
 
-const shouldRetireLine = (tags: string[], config: Config): boolean => {
+export const shouldRetireLine = (tags: string[], config: Config): boolean => {
   return config.retireLinesConditions.some(
     (condition) =>
       JSON.stringify(
@@ -216,7 +216,7 @@ const shouldRetireLine = (tags: string[], config: Config): boolean => {
   );
 };
 
-const groupByVisits = (lines: BillingLine[]): GroupedBillingLines => {
+export const groupByVisits = (lines: BillingLine[]): GroupedBillingLines => {
   const groupedLines: GroupedBillingLines = {};
 
   lines.forEach((line) => {
@@ -237,7 +237,7 @@ const groupByVisits = (lines: BillingLine[]): GroupedBillingLines => {
   return groupedLines;
 };
 
-const groupLinesByDay = (linesToGroup: BillingLine[]): GroupedBillingLines => {
+export const groupLinesByDay = (linesToGroup: BillingLine[]): GroupedBillingLines => {
   const groupedLines: GroupedBillingLines = {};
 
   linesToGroup.forEach((line) => {

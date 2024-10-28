@@ -4,7 +4,6 @@ import {
   CheckmarkOutlineIcon,
   CloseFilledIcon,
   ErrorState,
-  formatDate,
   useLayoutType,
   usePagination,
 } from '@openmrs/esm-framework';
@@ -41,7 +40,7 @@ const PatientBillingStatusSummary: React.FC<PatientBillingStatusSummaryProps> = 
   const displayText = t('billingDetails', 'Billing Details');
   const layout = useLayoutType();
   const isTablet = layout === 'tablet';
-  const isDesktop = layout === 'small-desktop' || layout === 'large-desktop';
+  const isDesktop = !isTablet;
 
   const { groupedLines, isLoading, isValidating, error } = useBillingStatus(patient.id);
 
