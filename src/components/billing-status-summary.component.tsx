@@ -4,7 +4,6 @@ import {
   CheckmarkOutlineIcon,
   CloseFilledIcon,
   ErrorState,
-  formatDate,
   useLayoutType,
   usePagination,
 } from '@openmrs/esm-framework';

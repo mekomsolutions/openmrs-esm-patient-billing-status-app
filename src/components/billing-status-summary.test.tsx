@@ -1,200 +1,110 @@
-// import React from 'react';
-// import { render, screen } from '@testing-library/react';
-// import userEvent from '@testing-library/user-event';
-// import { useTranslation } from 'react-i18next';
-// import { useBillingStatus } from '../resources/billing-status.resource';
-// import { formatDate, useLayoutType } from '@openmrs/esm-framework';
-// import PatientBillingStatusSummary from './billing-status-summary.component';
-//
-// const mockedUseLayoutType = jest.mocked(useLayoutType);
-// const mockedFormatDate = jest.mocked(formatDate);
-//
-// jest.mock('../resources/billing-status.resource', () => ({
-//   useBillingStatus: jest.fn(),
-// }));
-//
-// const mockPatient = {
-//   id: 'test-patient-id',
-//   resourceType: 'Patient',
-// };
-//
-// const mockBillingData = {
-//   'visit-1': {
-//     visit: {
-//       uuid: 'visit-1',
-//       startDate: '2024-01-01',
-//       endDate: '2024-01-02',
-//     },
-//     approved: true,
-//     lines: [
-//       {
-//         id: 'line-1',
-//         displayName: 'Test Order 1',
-//         approved: true,
-//         document: 'DOC-001',
-//       },
-//     ],
-//   },
-//   'visit-2': {
-//     visit: {
-//       uuid: 'visit-2',
-//       startDate: '2024-01-03',
-//       endDate: '2024-01-04',
-//     },
-//     approved: false,
-//     lines: [
-//       {
-//         id: 'line-2',
-//         displayName: 'Test Order 2',
-//         approved: false,
-//         document: 'DOC-002',
-//       },
-//     ],
-//   },
-// };
-//
-// describe('PatientBillingStatusSummary', () => {
-//   beforeEach(() => {
-//     jest.clearAllMocks();
-//
-//     (useTranslation as jest.Mock).mockReturnValue({
-//       t: (key: string) => key,
-//     });
-//
-//     (useLayoutType as jest.Mock).mockReturnValue('small-desktop');
-//
-//     (useBillingStatus as jest.Mock).mockReturnValue({
-//       groupedLines: mockBillingData,
-//       isLoading: false,
-//       isValidating: false,
-//       error: null,
-//     });
-//   });
-//
-//   it('renders loading state correctly', () => {
-//     (useBillingStatus as jest.Mock).mockReturnValue({
-//       groupedLines: null,
-//       isLoading: true,
-//       isValidating: false,
-//       error: null,
-//     });
-//
-//     render(<PatientBillingStatusSummary patient={mockPatient} />);
-//
-//     expect(screen.getByRole('progressbar')).toBeInTheDocument();
-//   });
-//
-//   it('renders error state correctly', () => {
-//     const mockError = new Error('Test error');
-//     (useBillingStatus as jest.Mock).mockReturnValue({
-//       groupedLines: null,
-//       isLoading: false,
-//       isValidating: false,
-//       error: mockError,
-//     });
-//
-//     render(<PatientBillingStatusSummary patient={mockPatient} />);
-//
-//     expect(screen.getByText('billingStatus')).toBeInTheDocument();
-//     expect(screen.getByText(/error/i)).toBeInTheDocument();
-//   });
-//
-//   it('renders empty state when no data is available', () => {
-//     (useBillingStatus as jest.Mock).mockReturnValue({
-//       groupedLines: {},
-//       isLoading: false,
-//       isValidating: false,
-//       error: null,
-//     });
-//
-//     render(<PatientBillingStatusSummary patient={mockPatient} />);
-//
-//     expect(screen.getByText('billingDetails')).toBeInTheDocument();
-//   });
-//
-//   it('renders billing status table with correct data', () => {
-//     render(<PatientBillingStatusSummary patient={mockPatient} />);
-//
-//     expect(screen.getByText('Visit Date')).toBeInTheDocument();
-//     expect(screen.getByText('Status')).toBeInTheDocument();
-//
-//     expect(screen.getByText('2024-01-01 - 2024-01-02')).toBeInTheDocument();
-//     expect(screen.getByText('2024-01-03 - 2024-01-04')).toBeInTheDocument();
-//   });
-//
-//   it('expands row to show order details when clicked', async () => {
-//     const user = userEvent.setup();
-//     render(<PatientBillingStatusSummary patient={mockPatient} />);
-//
-//     const expandButtons = screen.getAllByRole('button');
-//     await user.click(expandButtons[1]);
-//
-//     expect(screen.getByText('Test Order 1')).toBeInTheDocument();
-//     expect(screen.getByText('DOC-001')).toBeInTheDocument();
-//   });
-//
-//   it('handles pagination correctly', async () => {
-//     const largeDataSet = {};
-//     for (let i = 1; i <= 15; i++) {
-//       largeDataSet[`visit-${i}`] = {
-//         visit: {
-//           uuid: `visit-${i}`,
-//           startDate: '2024-01-01',
-//           endDate: '2024-01-02',
-//         },
-//         approved: true,
-//         lines: [
-//           {
-//             id: `line-${i}`,
-//             displayName: `Test Order ${i}`,
-//             approved: true,
-//             document: `DOC-${i.toString().padStart(3, '0')}`,
-//           },
-//         ],
-//       };
-//     }
-//
-//     (useBillingStatus as jest.Mock).mockReturnValue({
-//       groupedLines: largeDataSet,
-//       isLoading: false,
-//       isValidating: false,
-//       error: null,
-//     });
-//
-//     const user = userEvent.setup();
-//     render(<PatientBillingStatusSummary patient={mockPatient} />);
-//
-//     expect(screen.getByText('2024-01-01 - 2024-01-02')).toBeInTheDocument();
-//
-//     const nextPageButton = screen.getByRole('button', { name: /next page/i });
-//     await user.click(nextPageButton);
-//
-//     expect(screen.getByText(/showing/i)).toBeInTheDocument();
-//   });
-//
-//   it('adjusts layout based on screen size', () => {
-//     (useLayoutType as jest.Mock).mockReturnValue('tablet');
-//
-//     const { rerender } = render(<PatientBillingStatusSummary patient={mockPatient} />);
-//
-//     expect(screen.getByRole('table')).toBeInTheDocument();
-//
-//     (useLayoutType as jest.Mock).mockReturnValue('large-desktop');
-//     rerender(<PatientBillingStatusSummary patient={mockPatient} />);
-//
-//     expect(screen.getByRole('table')).toBeInTheDocument();
-//   });
-//
-//   it('shows inline loading state when validating', () => {
-//     (useBillingStatus as jest.Mock).mockReturnValue({
-//       groupedLines: mockBillingData,
-//       isLoading: false,
-//       isValidating: true,
-//       error: null,
-//     });
-//
-//     render(<PatientBillingStatusSummary patient={mockPatient} />);
-//
-//     expect(screen.getByRole('progressbar')).toBeInTheDocument();
-//   });
-// });
+import React from 'react';
+import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { useBillingStatus } from '../resources/billing-status.resource';
+import PatientBillingStatusSummary from './billing-status-summary.component';
+import { getDefaultsFromConfigSchema, openmrsFetch, restBaseUrl, useConfig } from '@openmrs/esm-framework';
+import { Config, configSchema } from '../config-schema';
+import { renderWithSwr } from '../tools/test-utils';
+
+const mockedUseConfig = jest.mocked(useConfig<Config>);
+
+jest.mock('../resources/billing-status.resource', () => ({
+  useBillingStatus: jest.fn(),
+}));
+
+describe('PatientBillingStatusSummary', () => {
+  beforeEach(() => {
+    mockedUseConfig.mockReturnValue({
+      ...getDefaultsFromConfigSchema(configSchema),
+    });
+  });
+
+  it('should display loading state when isLoading is true', () => {
+    (useBillingStatus as jest.Mock).mockImplementation(() => ({
+      groupedLines: {},
+      isLoading: true,
+      isValidating: false,
+      error: null,
+    }));
+
+    renderWithSwr(<PatientBillingStatusSummary patient={{ id: 'test-patient-uuid' }} />);
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should display error state when error is present', () => {
+    (useBillingStatus as jest.Mock).mockImplementation(() => ({
+      groupedLines: {},
+      isLoading: false,
+      isValidating: false,
+      error: new Error('Error fetching data'),
+    }));
+
+    renderWithSwr(<PatientBillingStatusSummary patient={{ id: 'test-patient-uuid' }} />);
+
+    expect(screen.getByText(/Error State/i)).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('should display empty state when there are no billing lines', () => {
+    (useBillingStatus as jest.Mock).mockImplementation(() => ({
+      groupedLines: {},
+      isLoading: false,
+      isValidating: false,
+      error: null,
+    }));
+
+    renderWithSwr(<PatientBillingStatusSummary patient={{ id: 'test-patient-uuid' }} />);
+
+    expect(screen.getByText(/There are no {{displayText}} to display for this patient/i)).toBeInTheDocument();
+  });
+
+  it('should display billing status summary correctly', async () => {
+    const user = userEvent.setup();
+
+    const mockGroupedLines = {
+      '2023-05-01': {
+        id: '2023-05-01',
+        visit: { uuid: 'visit-1', startDate: '2023-05-01T00:00:00', endDate: '2023-05-01T23:59:59' },
+        date: '2023-05-01',
+        status: true,
+        lines: [
+          {
+            id: '1',
+            date: '2023-05-01',
+            document: 'Order 001',
+            order: 'Order 1',
+            tags: ['ORDER', 'FULLY_INVOICED', 'PAID', 'NOT_OVERDUE'],
+            displayName: 'Product 1',
+            approved: true,
+          },
+          {
+            id: '2',
+            date: '2023-05-01',
+            document: 'Order 001',
+            order: 'Order 2',
+            tags: ['ORDER', 'PARTIALLY_INVOICED', 'PAID', 'NOT_OVERDUE'],
+            displayName: 'Product 2',
+            approved: true,
+          },
+        ],
+      },
+    };
+
+    (useBillingStatus as jest.Mock).mockImplementation(() => ({
+      groupedLines: mockGroupedLines,
+      isLoading: false,
+      isValidating: false,
+      error: null,
+    }));
+
+    renderWithSwr(<PatientBillingStatusSummary patient={{ id: 'test-patient-uuid' }} />);
+
+    screen.debug(null, 1000000000);
+    expect(screen.getByText('Date')).toBeInTheDocument();
+    expect(screen.getByText('Status')).toBeInTheDocument();
+    expect(screen.getByText('2023-05-01')).toBeInTheDocument();
+    expect(screen.getByText(/CheckmarkOutlineIcon/i)).toBeInTheDocument();
+  });
+});
