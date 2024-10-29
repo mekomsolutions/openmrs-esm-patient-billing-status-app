@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CheckmarkOutlineIcon,
-  CloseFilledIcon,
+  CloseOutlineIcon,
   ErrorState,
   useLayoutType,
   usePagination,
@@ -106,7 +106,7 @@ const PatientBillingStatusSummary: React.FC<PatientBillingStatusSummaryProps> = 
                           {row.cells[1].value ? (
                             <CheckmarkOutlineIcon className={styles.approvedIcon} />
                           ) : (
-                            <CloseFilledIcon className={styles.warningIcon} />
+                            <CloseOutlineIcon className={styles.warningIcon} />
                           )}
                         </TableCell>
                       </TableExpandRow>
@@ -176,7 +176,7 @@ const ExpandedRowContent = ({ rowId, rowIndex, parentTableRows }) => {
             {order.approved ? (
               <CheckmarkOutlineIcon className={styles.approvedIcon} />
             ) : (
-              <CloseFilledIcon className={styles.warningIcon} />
+              <CloseOutlineIcon className={styles.warningIcon} />
             )}
           </div>
           <div className={styles.nameSection}>{order.displayName}</div>
