@@ -87,7 +87,7 @@
     "jest-cli": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "lint-staged": "^15.2.2",
-    "openmrs": "^5.8.2-pre.2411",
+    "openmrs": "next",
     "prettier": "^2.8.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
