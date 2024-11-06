@@ -158,7 +158,7 @@ describe('useBillingStatus', () => {
       .mockResolvedValueOnce(mockData.orders as unknown as FetchResponse)
       .mockResolvedValueOnce(mockData.invoices as unknown as FetchResponse);
 
-    const { result } = renderHook(() => useBillingStatus('patient-1'));
+    const { result } = renderHook(() => useBillingStatus('patient-4'));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
