@@ -11,76 +11,102 @@ import {
 } from '../types';
 import { BillingCondition, type Config } from '../config-schema';
 
-const ORDER = 'ORDER';
-const INVOICED = 'INVOICED';
-const NOT_INVOICED = 'NOT_INVOICED';
-const FULLY_INVOICED = 'FULLY_INVOICED';
-const PARTIALLY_INVOICED = 'PARTIALLY_INVOICED';
-const PAID = 'PAID';
-const NOT_PAID = 'NOT_PAID';
-const OVERDUE = 'OVERDUE';
-const NOT_OVERDUE = 'NOT_OVERDUE';
-
-const fetchVisits = async (patientUuid: string) => {
+export const useVisits = (patientUuid: string) => {
   const customRepresentation = 'custom:(uuid,encounters:(orders),startDatetime,stopDatetime)';
   const apiUrl = `${restBaseUrl}/visit?patient=${patientUuid}&v=${customRepresentation}`;
-  const response = await openmrsFetch<{ results: PatientVisit[] }>(apiUrl);
 
-  const flattenedVisits: BillingVisit[] = [];
-  response.data.results.forEach((visit) => {
-    visit.encounters?.forEach((encounter) => {
-      encounter.orders?.forEach((order) => {
-        flattenedVisits.push({
-          uuid: visit.uuid,
-          order: order.uuid,
-          startDate: visit.startDatetime,
-          endDate: visit.stopDatetime,
+  const { data, isLoading, isValidating, error } = useSWR<{ data: { results: PatientVisit[] } }>(
+    patientUuid ? apiUrl : null,
+    openmrsFetch,
+  );
+
+  const flattenedVisits = useMemo(() => {
+    if (!data) return [];
+
+    const visits: BillingVisit[] = [];
+    data.data.results.forEach((visit) => {
+      visit.encounters?.forEach((encounter) => {
+        encounter.orders?.forEach((order) => {
+          visits.push({
+            uuid: visit.uuid,
+            order: order.uuid,
+            startDate: visit.startDatetime,
+            endDate: visit.stopDatetime,
+          });
         });
       });
     });
-  });
 
-  return flattenedVisits;
+    return visits;
+  }, [data]);
+
+  return {
+    visits: flattenedVisits,
+    isLoading,
+    isValidating,
+    error,
+  };
 };
 
-const fetchOrders = async (patientUuid: string, config: Config) => {
+export const useOrders = (patientUuid: string, config: Config) => {
   const apiUrl = `${restBaseUrl}/erp/order?rep=custom:order_lines,date,date_order,name,number,product_id,${config.orderExternalIdFieldName}`;
-  const response = await openmrsFetch<ErpOrder[]>(apiUrl, {
-    method: 'POST',
-    body: {
-      filters: [
-        {
-          field: config.patientUuidFieldName,
-          comparison: '=',
-          value: patientUuid,
+
+  const { data, error, isLoading, isValidating } = useSWR<{ data: ErpOrder[] }>(
+    patientUuid ? [apiUrl, patientUuid] : null,
+    async () =>
+      openmrsFetch(apiUrl, {
+        method: 'POST',
+        body: {
+          filters: [
+            {
+              field: config.patientUuidFieldName,
+              comparison: '=',
+              value: patientUuid,
+            },
+          ],
         },
-      ],
-    },
-  });
-  return response.data;
+      }),
+  );
+
+  return {
+    orders: data?.data ?? [],
+    isLoading,
+    isValidating,
+    error,
+  };
 };
 
-const fetchInvoices = async (patientUuid: string, config: Config) => {
+export const useInvoices = (patientUuid: string, config: Config) => {
   const apiUrl = `${restBaseUrl}/erp/invoice?rep=custom:invoice_lines,date,payment_state,invoice_date_due,name`;
-  const response = await openmrsFetch<ErpInvoice[]>(apiUrl, {
-    method: 'POST',
-    body: {
-      filters: [
-        {
-          field: config.patientUuidFieldName,
-          comparison: '=',
-          value: patientUuid,
-        },
-        {
-          field: 'move_type',
-          comparison: '=',
-          value: 'out_invoice',
-        },
-      ],
-    },
-  });
 
-  return response.data;
+  const { data, error, isLoading, isValidating } = useSWR<{ data: ErpInvoice[] }>(
+    patientUuid ? [apiUrl, patientUuid] : null,
+    async () =>
+      openmrsFetch(apiUrl, {
+        method: 'POST',
+        body: {
+          filters: [
+            {
+              field: config.patientUuidFieldName,
+              comparison: '=',
+              value: patientUuid,
+            },
+            {
+              field: 'move_type',
+              comparison: '=',
+              value: 'out_invoice',
+            },
+          ],
+        },
+      }),
+  );
+
+  return {
+    invoices: data?.data ?? [],
+    isLoading,
+    isValidating,
+    error,
+  };
 };
 
 export const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], config: Config): BillingLine[] => {
@@ -89,14 +115,14 @@ export const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], 
   // Process order lines
   orders.forEach((order) => {
     order.order_lines.forEach((orderLine) => {
-      const tags: string[] = [ORDER];
+      const tags: string[] = [BillingCondition.ORDER];
 
       if (orderLine.qty_invoiced === 0) {
-        tags.push(NOT_INVOICED);
+        tags.push(BillingCondition.NOT_INVOICED);
       } else if (orderLine.qty_invoiced > 0 && orderLine.qty_to_invoice > 0) {
-        tags.push(PARTIALLY_INVOICED);
+        tags.push(BillingCondition.PARTIALLY_INVOICED);
       } else if (orderLine.qty_to_invoice <= 0) {
-        tags.push(FULLY_INVOICED);
+        tags.push(BillingCondition.FULLY_INVOICED);
       }
 
       const line: BillingLine = {
@@ -116,18 +142,18 @@ export const processBillingLines = (orders: ErpOrder[], invoices: ErpInvoice[], 
   // Process invoice lines
   invoices.forEach((invoice) => {
     invoice.invoice_lines.forEach((invoiceLine) => {
-      const tags: string[] = [INVOICED];
+      const tags: string[] = [BillingCondition.INVOICED];
 
       if (invoice.payment_state === 'paid') {
-        tags.push(PAID);
+        tags.push(BillingCondition.PAID);
       } else {
-        tags.push(NOT_PAID);
+        tags.push(BillingCondition.NOT_PAID);
       }
 
       if (new Date(invoice.invoice_date_due) <= new Date()) {
         tags.push(BillingCondition.OVERDUE);
       } else {
-        tags.push(NOT_OVERDUE);
+        tags.push(BillingCondition.NOT_OVERDUE);
       }
 
       let orderId = ''; // TODO this should be the orderExternalId of the invoice order
@@ -263,18 +289,22 @@ export const useBillingStatus = (patientUuid: string) => {
   const config: Config = useConfig();
 
   const {
-    data: billingLines,
-    error,
-    isLoading,
-    isValidating,
-  } = useSWR<BillingLine[], Error>(patientUuid ? ['billingStatus', patientUuid] : null, async () => {
-    const [orders, invoices] = await Promise.all([
-      fetchOrders(patientUuid, config),
-      fetchInvoices(patientUuid, config),
-      //   TODO fetch patient visits fetchVisits(patientUuid)
-    ]);
+    orders,
+    isLoading: loadingOrders,
+    error: ordersError,
+    isValidating: validatingOrders,
+  } = useOrders(patientUuid, config);
+  const {
+    invoices,
+    isLoading: loadingInvoices,
+    error: invoicesError,
+    isValidating: validatingInvoices,
+  } = useInvoices(patientUuid, config);
+
+  const billingLines = useMemo(() => {
+    if (!orders || !invoices) return null;
     return processBillingLines(orders, invoices, config);
-  });
+  }, [orders, invoices, config]);
 
   const groupedLines = useMemo(() => {
     if (!billingLines) return {};
@@ -283,8 +313,8 @@ export const useBillingStatus = (patientUuid: string) => {
 
   return {
     groupedLines,
-    isLoading: isLoading || (!error && !billingLines),
-    error,
-    isValidating,
+    isLoading: loadingOrders || loadingInvoices,
+    error: invoicesError || ordersError,
+    isValidating: validatingInvoices || validatingOrders,
   };
 };

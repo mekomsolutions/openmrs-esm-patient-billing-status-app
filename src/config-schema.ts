@@ -40,7 +40,6 @@ const validateConditionGroup = (conditions: string) => {
       return `Condition group contains conflicting states: ${pair[0]} and ${pair[1]}`;
     }
   }
-  return true;
 };
 
 /**

@@ -23,11 +23,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tile,
 } from '@carbon/react';
 import { useBillingStatus } from '../resources/billing-status.resource';
 import classNames from 'classnames';
-import { type BillingLineGroup } from '../types';
+import { type BillingLine, type BillingLineGroup } from '../types';
 
 interface PatientBillingStatusSummaryProps {
   patient: fhir.Patient;
@@ -54,13 +53,13 @@ const PatientBillingStatusSummary: React.FC<PatientBillingStatusSummaryProps> = 
   const { results: paginatedRows, goTo, currentPage } = usePagination(tableRows, defaultPageSize);
 
   const headers = [
-    { key: 'date', header: 'Date' },
-    { key: 'status', header: 'Status' },
+    { key: 'date', header: t('date', 'Date') },
+    { key: 'status', header: t('status', 'Status') },
   ];
 
   if (isLoading) return <DataTableSkeleton role="progressbar" compact={isDesktop} zebra />;
   if (error) return <ErrorState error={error} headerTitle={headerTitle} />;
-  if (paginatedRows.length === 0) return <EmptyState displayText={displayText} headerTitle={headerTitle} />;
+  if (tableRows.length === 0) return <EmptyState displayText={displayText} headerTitle={headerTitle} />;
 
   return (
     <div className={styles.widgetCard}>
@@ -86,52 +85,41 @@ const PatientBillingStatusSummary: React.FC<PatientBillingStatusSummaryProps> = 
           getTableContainerProps,
           getExpandHeaderProps,
         }) => (
-          <>
-            <TableContainer {...getTableContainerProps()}>
-              <Table {...getTableProps()} className={styles.table}>
-                <TableHead className={classNames(styles.productiveHeading01, styles.text02)}>
-                  <TableRow>
-                    <TableExpandHeader enableToggle {...getExpandHeaderProps()} />
-                    {headers.map((header: { header: string }) => (
-                      <TableHeader {...getHeaderProps({ header })}>{header.header}</TableHeader>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {rows.map((row: { id: React.Key; cells: { value: any }[]; isExpanded: any }, index) => (
-                    <React.Fragment key={row.id}>
-                      <TableExpandRow className={styles.row} {...getRowProps({ row })}>
-                        <TableCell>{row.cells[0].value}</TableCell>
-                        <TableCell>
-                          {row.cells[1].value ? (
-                            <CheckmarkOutlineIcon className={styles.approvedIcon} />
-                          ) : (
-                            <CloseFilledIcon className={styles.warningIcon} />
-                          )}
-                        </TableCell>
-                      </TableExpandRow>
-                      {row.isExpanded ? (
-                        <TableExpandedRow colSpan={headers.length + 2}>
-                          <ExpandedRowContent rowId={row.id} rowIndex={index} parentTableRows={tableRows} />
-                        </TableExpandedRow>
-                      ) : (
-                        <TableExpandedRow className={styles.hiddenRow} colSpan={headers.length + 2} />
-                      )}
-                    </React.Fragment>
+          <TableContainer {...getTableContainerProps()}>
+            <Table {...getTableProps()} className={styles.table}>
+              <TableHead className={classNames(styles.productiveHeading01, styles.text02)}>
+                <TableRow>
+                  <TableExpandHeader enableToggle {...getExpandHeaderProps()} />
+                  {headers.map((header: { header: string }) => (
+                    <TableHeader {...getHeaderProps({ header })}>{header.header}</TableHeader>
                   ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            {rows.length === 0 ? (
-              <div className={styles.tileContainer}>
-                <Tile className={styles.emptyStateTile}>
-                  <div className={styles.tileContent}>
-                    <p className={styles.content}>{t('noMatchingOrdersToDisplay', 'No billing status to display')}</p>
-                  </div>
-                </Tile>
-              </div>
-            ) : null}
-          </>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.map((row: { id: React.Key; cells: { value: any }[]; isExpanded: any }, index) => (
+                  <React.Fragment key={row.id}>
+                    <TableExpandRow className={styles.row} {...getRowProps({ row })}>
+                      <TableCell>{row.cells[0].value}</TableCell>
+                      <TableCell>
+                        {row.cells[1].value ? (
+                          <CheckmarkOutlineIcon className={styles.approvedIcon} />
+                        ) : (
+                          <CloseOutlineIcon className={styles.warningIcon} />
+                        )}
+                      </TableCell>
+                    </TableExpandRow>
+                    {row.isExpanded ? (
+                      <TableExpandedRow colSpan={headers.length + 2}>
+                        <ExpandedRowContent rowId={row.id} rowIndex={index} parentTableRows={tableRows} />
+                      </TableExpandedRow>
+                    ) : (
+                      <TableExpandedRow className={styles.hiddenRow} colSpan={headers.length + 2} />
+                    )}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
       </DataTable>
       <div className={styles.paginationContainer}>
@@ -148,15 +136,8 @@ const PatientBillingStatusSummary: React.FC<PatientBillingStatusSummaryProps> = 
 };
 
 const ExpandedRowContent = ({ rowId, rowIndex, parentTableRows }) => {
-  const { t } = useTranslation();
-  const headers = [
-    { key: 'approved', header: 'status' },
-    { key: 'displayName', header: 'Order' },
-    { key: 'document', header: 'Document' },
-  ];
-
   const orders = useMemo(() => {
-    const row = parentTableRows.find((row) => row.id === rowId);
+    const row = parentTableRows.find((row: BillingLineGroup) => row.id === rowId);
     if (row && row.lines) {
       return row.lines;
     }
@@ -165,7 +146,7 @@ const ExpandedRowContent = ({ rowId, rowIndex, parentTableRows }) => {
 
   return (
     <div>
-      {orders.map((order, index) => (
+      {orders.map((order: BillingLine, index: number) => (
         <div
           key={order.id}
           className={classNames(styles.expandedTile, {
