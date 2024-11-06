@@ -10,6 +10,10 @@ import { mockGroupedLines } from '../../__mocks__';
 const mockedUseConfig = jest.mocked(useConfig<Config>);
 const mockedUseBillingStatus = jest.mocked(useBillingStatus);
 
+jest.mock('../resources/billing-status.resource', () => ({
+  useBillingStatus: jest.fn(),
+}));
+
 describe('PatientBillingStatusSummary', () => {
   beforeEach(() => {
     mockedUseConfig.mockReturnValue({
