@@ -1,6 +1,5 @@
-import { defineConfigSchema, getSyncLifecycle } from '@openmrs/esm-framework';
+import { defineConfigSchema, getAsyncLifecycle } from '@openmrs/esm-framework';
 import { configSchema } from './config-schema';
-import patientBillingStatusSummary from './components/billing-status-summary.component';
 
 const moduleName = '@openmrs/esm-patient-billing-status-app';
 
@@ -15,4 +14,7 @@ export function startupApp() {
   defineConfigSchema(moduleName, configSchema);
 }
 
-export const patientBillingStatusOverview = getSyncLifecycle(patientBillingStatusSummary, options);
+export const patientBillingStatusOverview = getAsyncLifecycle(
+  () => import('../src/components/billing-status-summary.component'),
+  options,
+);
