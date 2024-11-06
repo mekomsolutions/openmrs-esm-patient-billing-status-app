@@ -96,6 +96,21 @@ The module includes validation logic to prevent conflicting condition states, su
 }
 ```
 
+### Bumping the Common Lib version
+
+Make sure to bump the Common Lib version used here each time you cut a release of Patient Chart. Because Common Lib is
+marked as a peer dependency and a Webpack module federation shared dependency in
+the [Appointments app](packages/esm-appointments-app/package.json), the copy of the Common Lib that the framework loads
+is the first one that gets loaded at runtime when frontend modules are registered. If this happens to be a different
+version than what the Patient Chart expects, you might get some unexpected behavior in the Patient Chart. You can bump
+the Common Lib version by running the following command:
+
+```sh
+yarn up @openmrs/esm-patient-common-lib
+git checkout package.json
+yarn
+```
+
 ## Contributing
 
 For more information, please see
