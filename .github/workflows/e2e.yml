@@ -53,6 +53,7 @@ jobs:
       - name: Stop dev server
         if: "!cancelled()"
         run: docker stop $(docker ps -a -q)
+
       - name: Upload report
         uses: actions/upload-artifact@v3
         if: always()
