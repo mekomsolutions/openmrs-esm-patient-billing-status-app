@@ -2,9 +2,16 @@
   "env": {
     "node": true
   },
-  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "react-hooks"],
+  "plugins": [
+    "@typescript-eslint",
+    "react-hooks",
+    "testing-library"
+  ],
   "root": true,
   "rules": {
     "react-hooks/exhaustive-deps": "warn",
@@ -15,6 +22,7 @@
     "@typescript-eslint/no-var-requires": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/ban-types": "off",
+    "testing-library/no-node-access": "off",
     // Use `import type` instead of `import` for type imports https://typescript-eslint.io/blog/consistent-type-imports-and-exports-why-and-how
     "@typescript-eslint/consistent-type-imports": [
       "error",
@@ -23,7 +31,15 @@
       }
     ],
     "prefer-const": "off",
-    "no-console": ["error", { "allow": ["warn", "error"] }],
+    "no-console": [
+      "error",
+      {
+        "allow": [
+          "warn",
+          "error"
+        ]
+      }
+    ],
     "no-unsafe-optional-chaining": "off",
     "no-explicit-any": "off",
     "no-extra-boolean-cast": "off",
@@ -39,7 +55,9 @@
           },
           {
             "name": "lodash-es",
-            "importNames": ["default"],
+            "importNames": [
+              "default"
+            ],
             "message": "Import specific methods from `lodash-es`. e.g. `import { map } from 'lodash-es'`"
           },
           {
