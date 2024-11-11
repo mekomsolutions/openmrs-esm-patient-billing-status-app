@@ -22,7 +22,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "18"
@@ -45,15 +46,20 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           server-token: ${{ secrets.TURBO_SERVER_TOKEN }}
 
-      - run: yarn verify
-      - run: yarn turbo build --color --concurrency=5
+      - name: Run verification
+        run: yarn verify
 
-      - name: Upload Artifacts
+      - name: Build package
+        run: yarn turbo build --color --concurrency=5
+
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: |
-            dist
+          name: dist-build
+          path: dist
+          if-no-files-found: warn
+          compression-level: 6
+          overwrite: true
 
   pre_release:
     runs-on: ubuntu-latest
@@ -63,6 +69,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-build
+          path: dist
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -86,26 +98,37 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           server-token: ${{ secrets.TURBO_SERVER_TOKEN }}
 
-      - name: Version
+      - name: Version bump
         run: yarn version "$(node -e "console.log(require('semver').inc(require('./package.json').version, 'patch'))")-pre.${{ github.run_number }}"
 
-      - name: Build
+      - name: Build package
         run: yarn turbo build --color --concurrency=5
 
-      - run: git config user.email "info@ozone-his.org" && git config user.name "Ozone CI"
-      - run: git add . && git commit -m "Prerelease version" --no-verify
+      - name: Configure Git
+        run: |
+          git config user.email "info@ozone-his.org"
+          git config user.name "Ozone CI"
 
-      - name: Pre-release
-        run: yarn config set npmAuthToken "${NODE_AUTH_TOKEN}" && yarn npm publish --access public --tag next
+      - name: Commit version changes
+        run: |
+          git add .
+          git commit -m "Prerelease version" --no-verify
+
+      - name: Publish pre-release
+        run: |
+          yarn config set npmAuthToken "${NODE_AUTH_TOKEN}"
+          yarn npm publish --access public --tag next
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
-      - name: Upload Artifacts
+      - name: Upload Pre-release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: |
-            dist
+          name: dist-prerelease
+          path: dist
+          if-no-files-found: warn
+          compression-level: 6
+          overwrite: true
 
   release:
     runs-on: ubuntu-latest
@@ -114,8 +137,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Download Artifacts
+
+      - name: Download Build Artifacts
         uses: actions/download-artifact@v4
+        with:
+          name: dist-build
+          path: dist
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -140,6 +167,9 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           server-token: ${{ secrets.TURBO_SERVER_TOKEN }}
 
-      - run: yarn config set npmAuthToken "${NODE_AUTH_TOKEN}" && yarn npm publish --access public
+      - name: Publish release
+        run: |
+          yarn config set npmAuthToken "${NODE_AUTH_TOKEN}"
+          yarn npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
