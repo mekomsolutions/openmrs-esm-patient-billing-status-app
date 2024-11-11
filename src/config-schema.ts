@@ -1,4 +1,4 @@
-import { Type, validators } from '@openmrs/esm-framework';
+import { Type } from '@openmrs/esm-framework';
 
 /**
  * Represents the possible states of a billing line item
@@ -54,7 +54,7 @@ export const configSchema = {
     ).join(', ')}`,
     _elements: {
       _type: Type.String,
-      _validators: [validators.oneOf(Object.values(BillingCondition)), validateConditionGroup],
+      _validators: [validateConditionGroup],
     },
   },
   nonApprovedConditions: {
@@ -69,7 +69,7 @@ export const configSchema = {
     ).join(', ')}`,
     _elements: {
       _type: Type.String,
-      _validators: [validators.oneOf(Object.values(BillingCondition)), validateConditionGroup],
+      _validators: [validateConditionGroup],
     },
   },
   approvedConditions: {
@@ -84,7 +84,7 @@ export const configSchema = {
     ).join(', ')}`,
     _elements: {
       _type: Type.String,
-      _validators: [validators.oneOf(Object.values(BillingCondition)), validateConditionGroup],
+      _validators: [validateConditionGroup],
     },
   },
   patientUuidFieldName: {

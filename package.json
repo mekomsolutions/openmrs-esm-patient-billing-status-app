@@ -1,6 +1,6 @@
 {
-  "name": "@openmrs/esm-template-app",
-  "version": "4.0.0",
+  "name": "@mekomsolutions/esm-patient-billing-status-app",
+  "version": "1.0.0",
   "license": "MPL-2.0",
   "description": "An OpenMRS seed application for building microfrontends",
   "browser": "dist/openmrs-esm-template-app.js",
@@ -30,14 +30,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/openmrs/openmrs-esm-template-app.git"
+    "url": "git+https://github.com/mekomsolutions/openmrs-esm-patient-billing-status-app.git"
   },
-  "homepage": "https://github.com/openmrs/openmrs-esm-template-app#readme",
+  "homepage": "https://github.com/mekomsolutions/openmrs-esm-patient-billing-status-app/#readme",
   "publishConfig": {
     "access": "public"
   },
   "bugs": {
-    "url": "https://github.com/openmrs/openmrs-esm-template-app/issues"
+    "url": "https://github.com/mekomsolutions/openmrs-esm-patient-billing-status-app/issues"
   },
   "dependencies": {
     "@carbon/react": "^1.68.0",
@@ -45,7 +45,8 @@
     "lodash-es": "^4.17.21"
   },
   "peerDependencies": {
-    "@openmrs/esm-framework": "*",
+    "@openmrs/esm-framework": "5.x",
+    "@openmrs/esm-patient-common-lib": "8.x",
     "dayjs": "1.x",
     "react": "18.x",
     "react-i18next": "11.x",
@@ -98,12 +99,11 @@
     "swc-loader": "^0.2.3",
     "turbo": "^2.2.3",
     "typescript": "^4.9.5",
-    "webpack": "^5.88.1",
-    "webpack-cli": "^5.1.4"
+    "webpack": "^5.88.0"
   },
   "lint-staged": {
     "packages/**/src/**/*.{ts,tsx}": "eslint --cache --fix --max-warnings 0",
     "*.{css,scss,ts,tsx}": "prettier --write --list-different"
   },
-  "packageManager": "yarn@4.3.1"
+  "packageManager": "yarn@4.5.1"
 }
