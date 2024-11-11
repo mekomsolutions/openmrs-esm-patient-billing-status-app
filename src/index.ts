@@ -1,7 +1,7 @@
 import { defineConfigSchema, getAsyncLifecycle } from '@openmrs/esm-framework';
 import { configSchema } from './config-schema';
 
-const moduleName = '@openmrs/esm-patient-billing-status-app';
+const moduleName = '@ozone-his/esm-patient-billing-status-app';
 
 const options = {
   featureName: 'root-world',
