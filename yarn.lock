@@ -3475,9 +3475,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ozone-his/esm-patient-billing-status-app@workspace:.":
+"@mekomsolutions/esm-patient-billing-status-app@workspace:.":
   version: 0.0.0-use.local
-  resolution: "@ozone-his/esm-patient-billing-status-app@workspace:."
+  resolution: "@mekomsolutions/esm-patient-billing-status-app@workspace:."
   dependencies:
     "@carbon/react": "npm:^1.68.0"
     "@openmrs/esm-framework": "npm:next"
