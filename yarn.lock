@@ -2805,7 +2805,7 @@ __metadata:
   resolution: "@mekomsolutions/esm-patient-billing-status-app@workspace:."
   dependencies:
     "@carbon/react": "npm:^1.68.0"
-    "@openmrs/esm-framework": "npm:^5.8.2-pre.2483"
+    "@openmrs/esm-framework": "npm:next"
     "@openmrs/esm-patient-common-lib": "npm:next"
     "@openmrs/esm-styleguide": "npm:next"
     "@playwright/test": "npm:^1.42.1"
@@ -2841,7 +2841,7 @@ __metadata:
     jest-environment-jsdom: "npm:^29.7.0"
     lint-staged: "npm:^15.2.2"
     lodash-es: "npm:^4.17.21"
-    openmrs: "npm:^5.8.2-pre.2483"
+    openmrs: "npm:next"
     prettier: "npm:^2.8.8"
     react: "npm:^18.2.0"
     react-dom: "npm:^18.2.0"
@@ -3315,7 +3315,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openmrs/esm-framework@npm:5.8.2-pre.2483, @openmrs/esm-framework@npm:^5.8.2-pre.2483":
+"@openmrs/esm-framework@npm:5.8.2-pre.2483, @openmrs/esm-framework@npm:next":
   version: 5.8.2-pre.2483
   resolution: "@openmrs/esm-framework@npm:5.8.2-pre.2483"
   dependencies:
@@ -14437,7 +14437,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openmrs@npm:^5.8.2-pre.2483":
+"openmrs@npm:next":
   version: 5.8.2-pre.2483
   resolution: "openmrs@npm:5.8.2-pre.2483"
   dependencies:
