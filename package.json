@@ -1,5 +1,5 @@
 {
-  "name": "@ozone-his/esm-patient-billing-status-app",
+  "name": "@mekomsolutions/esm-patient-billing-status-app",
   "version": "1.0.0",
   "license": "MPL-2.0",
   "description": "A microfrontend app for OpenMRS 3 to display the billing status of a patient on the patient chart",

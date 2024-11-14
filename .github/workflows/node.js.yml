@@ -1,4 +1,4 @@
-name: Ozone-HIS CI
+name: Mekom Solutions CI
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
     types:
       - created
 env:
-  ESM_NAME: "@ozone-his/esm-patient-billing-status-app"
+  ESM_NAME: "@mekomsolutions/esm-patient-billing-status-app"
   JS_NAME: "openmrs-esm-patient-billing-status-app.js"
 
 jobs:
@@ -106,8 +106,8 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config user.email "info@ozone-his.org"
-          git config user.name "Ozone CI"
+          git config user.email "info@mekomsolutions.com"
+          git config user.name "Mekom Solutions CI"
 
       - name: Commit version changes
         run: |
