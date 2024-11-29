@@ -1,4 +1,4 @@
-import { Type } from '@openmrs/esm-framework';
+import { Type, validators } from '@openmrs/esm-framework';
 
 /**
  * Represents the possible states of a billing line item
@@ -27,6 +27,8 @@ export type ConditionGroup = string;
  * Validates that condition groups don't contain conflicting states (e.g., INVOICED and NOT_INVOICED)
  */
 const validateConditionGroup = (conditions: string) => {
+  const allowedConditions = Object.values(BillingCondition);
+  const conditionsArray = conditions.split(',');
   const conflictPairs = [
     ['INVOICED', 'NOT_INVOICED'],
     ['FULLY_INVOICED', 'PARTIALLY_INVOICED'],
@@ -34,7 +36,14 @@ const validateConditionGroup = (conditions: string) => {
     ['OVERDUE', 'NOT_OVERDUE'],
   ];
 
-  const conditionsArray = conditions.split(',');
+  for (const condition of conditionsArray) {
+    const validateCondition = validators.oneOf(allowedConditions);
+    const result = validateCondition(condition);
+    if (result !== undefined) {
+      return result;
+    }
+  }
+
   for (const pair of conflictPairs) {
     if (conditionsArray.includes(pair[0]) && conditionsArray.includes(pair[1])) {
       return `Condition group contains conflicting states: ${pair[0]} and ${pair[1]}`;
