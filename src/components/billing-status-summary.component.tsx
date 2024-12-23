@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   CheckmarkOutlineIcon,
   CloseFilledIcon,
+  CloseOutlineIcon,
   ErrorState,
   useLayoutType,
   usePagination,
