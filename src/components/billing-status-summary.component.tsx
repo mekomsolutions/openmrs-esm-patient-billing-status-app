@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CheckmarkOutlineIcon,
-  CloseFilledIcon,
   CloseOutlineIcon,
   ErrorState,
   useLayoutType,
@@ -158,7 +157,7 @@ const ExpandedRowContent = ({ rowId, rowIndex, parentTableRows }) => {
             {order.approved ? (
               <CheckmarkOutlineIcon className={styles.approvedIcon} />
             ) : (
-              <CloseFilledIcon className={styles.warningIcon} />
+              <CloseOutlineIcon className={styles.warningIcon} />
             )}
           </div>
           <div className={styles.nameSection}>{order.displayName}</div>
