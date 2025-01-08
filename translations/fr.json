@@ -1,7 +1,7 @@
 {
-  "billingDetails": "Billing Details",
-  "billingStatus": "Billing Status",
+  "billingDetails": "Détails de facturation",
+  "billingStatus": "État de facturation",
   "date": "Date",
-  "orderBillingStatuses": "Order Billing Statuses",
-  "status": "Status"
+  "orderBillingStatuses": "États de facturation des commandes",
+  "status": "Statut"
 }
